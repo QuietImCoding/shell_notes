@@ -41,6 +41,13 @@ _preview_notes() {
     fi
 }
 
+preview-notes() {
+    pdfile=${1:0:$((${#1}-3))}.pdf
+    pandoc $1 -o $pdfile
+    open $pdfile
+    rm $pdfile
+}
+
 notes() {
     _todays_notes
     fname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`_$1.md"

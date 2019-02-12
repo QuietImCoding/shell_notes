@@ -41,7 +41,7 @@ _preview_notes() {
     fi
 }
 
-preview-notes() {
+preview-note() {
     pdfile=${1:0:$((${#1}-3))}.pdf
     pandoc $1 -o $pdfile
     open $pdfile

@@ -10,7 +10,7 @@ _show_todays_notes() {
 }
 
 _todays_notes() {
-    rm ~/notes/today/*
+    rm ~/notes/today/* 2>/dev/null
     dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
     for fname in `find ~/notes | grep md$`
     do
@@ -26,11 +26,9 @@ _preview_notes() {
 	dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
 	for fname in `ls $today`
 	do
-	    #abbrvname=${fname:$((${#dname}+1)):${#fname}}
 	    pdfname=${fname:0:$((${#fname}-2))}pdf
 	    pandoc -o $today$pdfname $today$fname
 	    open $today$pdfname
-	    rm $today$pdfname
 	done
     else
 	for arg in $@
@@ -39,7 +37,6 @@ _preview_notes() {
 	    pdfname=${abbrvname:0:$((${#abbrvname}-2))}pdf
 	    pandoc -o $today$pdfname $today$abbrvname
 	    open $today$pdfname
-	    rm $today$pdfname
 	done
     fi
 }

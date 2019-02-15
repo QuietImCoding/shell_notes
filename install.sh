@@ -1,5 +1,5 @@
 if [ $BASH_IT ]; then
-    cp notes.bash $BASH_IT/custom/
+    cp ~/shell_notes/notes.bash $BASH_IT/custom/
 fi
 # Cleanup temp files
-rm *~
+rm *~ 2>/dev/null

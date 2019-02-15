@@ -9,8 +9,38 @@ _show_todays_notes() {
     done
 }
 
+_get_subjects() {
+    for f in $@
+    do
+	echo $f | sed -E 's/.*[a-zA-Z]{3}_[0-9]{1,2}_[0-9]{4}_//g' | cut -d'.' -f1
+    done
+}
+
+
+_generate_toc() {
+    echo "# Table of Contents #"
+    for f in $@
+    do
+	echo "## Notes for $(_get_subjects $f) ##"
+	cur_inc=0
+	headers="$(cat $f | awk '$1 ~ "#+" { $1="";$NF=""; printf( "%s;", $0 )}')"
+	for i in $(seq 1 `awk -F";" '{print NF-1}' <<< "$headers"`)
+	do
+	    h="`echo $headers | cut -d';' -f"$i" | xargs`"
+	    id="$(echo $h | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+	    echo "$((cur_inc + i)). [$h](#$id)"
+	done
+	cur_inc=$((cur_inc + i))
+	echo
+    done
+    echo '$\pagebreak$'
+}
+
+
+
 _todays_notes() {
     rm ~/notes/today/* 2>/dev/null
+    rm `find ~/notes/ | grep '~'` 2>/dev/null
     dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
     for fname in `find ~/notes | grep md$`
     do
@@ -24,20 +54,26 @@ _preview_notes() {
     today=~/notes/today/
     if [[ $# -eq 0 ]]; then
 	dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
+	echo "`_generate_toc $today$(ls $today)`" > /tmp/notes_prev.md
+	echo >> /tmp/notes_prev.md
 	for fname in `ls $today`
 	do
-	    pdfname=${fname:0:$((${#fname}-2))}pdf
-	    pandoc -o $today$pdfname $today$fname
-	    open $today$pdfname
+	    cat $today$fname >> /tmp/notes_prev.md
+	    echo '$\pagebreak$' >> /tmp/notes_prev.md
+	    echo >> /tmp/notes_prev.md
 	done
+	pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
+	open /tmp/notes_prev.pdf
     else
+	echo "`_generate_toc $today$(ls $today)`" > /tmp/notes_prev.md
 	for arg in $@
 	do
 	    abbrvname=`ls $today | grep $arg`
-	    pdfname=${abbrvname:0:$((${#abbrvname}-2))}pdf
-	    pandoc -o $today$pdfname $today$abbrvname
-	    open $today$pdfname
+	    if [[ ! $abbrvname ]]; then continue; fi
+	    cat $today$abbrvname >> /tmp/notes_prev.md
 	done
+	pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
+	open /tmp/notes_prev.pdf
     fi
 }
 
@@ -80,7 +116,7 @@ notes() {
 		mkdir $notesdir
 	    fi
 	    if [[ ! -s $fname ]]; then
-		echo "# $dirname Notes for `date | awk '{print $2, $3, $6}'`" > $fname
+		echo "# $dirname Notes for `date | awk '{print $2, $3, $6}'` #" > $fname
 	    fi
 	
 	done

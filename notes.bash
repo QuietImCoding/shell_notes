@@ -65,41 +65,12 @@ _todays_notes() {
     done
 }
 
+# NOTE: first argument is interpreted as a path and gets shifted out
 _preview_notes() {
-    today=~/notes/today/
-    if [[ $# -eq 0 ]]; then
-	dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
-	listing="$(for note in $(ls $today); do echo $today$note; done)"
-	echo "`_generate_toc $listing`" > /tmp/notes_prev.md
-	echo >> /tmp/notes_prev.md
-	for fname in $listing
-	do
-	    echo $fname
-	    cat $fname >> /tmp/notes_prev.md
-	    echo '$\pagebreak$' >> /tmp/notes_prev.md
-	    echo >> /tmp/notes_prev.md
-	done
-	pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
-	open /tmp/notes_prev.pdf
-    else
-	listing="$(for note in $(ls $today); do echo $today$note; done)"
-	echo "`_generate_toc $listing`" > /tmp/notes_prev.md
-	echo >> /tmp/notes_prev.md
-	for arg in $@
-	do
-	    abbrvname=`ls $today | grep $arg`
-	    if [[ ! $abbrvname ]]; then continue; fi
-	    cat $today$abbrvname >> /tmp/notes_prev.md
-	    echo '$\pagebreak$' >> /tmp/notes_prev.md
-	    echo >> /tmp/notes_prev.md
-	done
-	pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
-	open /tmp/notes_prev.pdf
-    fi
-}
-
-preview-notes() {
-    listing="$(for note in $@; do echo $note; done)"
+    # Append path to files
+    path=$1
+    shift 1
+    listing="$(for note in $@; do echo $path$note; done)"
     echo "`_generate_toc $listing`" > /tmp/notes_prev.md
     echo >> /tmp/notes_prev.md
     for fname in $listing
@@ -111,11 +82,19 @@ preview-notes() {
     done
     pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
     open /tmp/notes_prev.pdf
-    # pdfile=${1:0:$((${#1}-3))}.pdf		
-    # pandoc $1 -o $pdfile			
-    # open $pdfile				
-    # rm $pdfile
 }
+
+_preview_todays_notes() {
+    today=~/notes/today/
+    if [[ $# -eq 0 ]]; then
+	_preview_notes $today "$(ls $today)" 
+    else
+	# Generate grep -e's 
+	exprs="$(for i in $@; do echo "-e $i"; done )"
+	_preview-notes $today "$(ls $today | grep $exprs)"
+    fi
+}
+
 
 notes() {
     _todays_notes
@@ -132,7 +111,8 @@ notes() {
 	printf '\tnotes preview [[class_name]]: either previews all notes or the ones in class name\n'
 	return
     elif [[ $1 = 'preview' ]]; then
-	_preview_notes ${@:2:${#@}}
+	# Pass rest of arguments to _preview_todays_notes
+	_preview_todays_notes ${@:2:${#@}}
     elif [[ $1 = 'today' ]]; then
 	_show_todays_notes $notesdirs
 	return

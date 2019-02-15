@@ -1,15 +1,20 @@
 #!/bin/bash
+
+# Shows a list of the notes you edited today
 _show_todays_notes() {
+    printf "\x1B[1m\x1B[4mYour notes from today:\x1B[0m\n"
     for dir in $@
     do
 	dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
 	for fname in `ls $dir`
 	do
-	    echo ${fname:$((${#dname}+1)):${#fname}}
+	    tosnip="${fname:$((${#dname}+1)):${#fname}}"
+	    echo "- ${tosnip:0:$((${#tosnip}-3))}"
 	done
     done
 }
 
+# Gross sed statement that gets the subject for a file and ignores its date
 _get_subjects() {
     for f in $@
     do
@@ -91,7 +96,7 @@ _preview_todays_notes() {
     else
 	# Generate grep -e's 
 	exprs="$(for i in $@; do echo "-e $i"; done )"
-	_preview-notes $today "$(ls $today | grep $exprs)"
+	_preview_notes $today "$(ls $today | grep $exprs)"
     fi
 }
 
@@ -114,6 +119,7 @@ notes() {
 	# Pass rest of arguments to _preview_todays_notes
 	_preview_todays_notes ${@:2:${#@}}
     elif [[ $1 = 'today' ]]; then
+	# List notes
 	_show_todays_notes $notesdirs
 	return
     else

@@ -54,23 +54,29 @@ _preview_notes() {
     today=~/notes/today/
     if [[ $# -eq 0 ]]; then
 	dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
-	echo "`_generate_toc $today$(ls $today)`" > /tmp/notes_prev.md
+	listing="$(for note in $(ls $today); do echo $today$note; done)"
+	echo "`_generate_toc $listing`" > /tmp/notes_prev.md
 	echo >> /tmp/notes_prev.md
-	for fname in `ls $today`
+	for fname in $listing
 	do
-	    cat $today$fname >> /tmp/notes_prev.md
+	    echo $fname
+	    cat $fname >> /tmp/notes_prev.md
 	    echo '$\pagebreak$' >> /tmp/notes_prev.md
 	    echo >> /tmp/notes_prev.md
 	done
 	pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
 	open /tmp/notes_prev.pdf
     else
-	echo "`_generate_toc $today$(ls $today)`" > /tmp/notes_prev.md
+	listing="$(for note in $(ls $today); do echo $today$note; done)"
+	echo "`_generate_toc $listing`" > /tmp/notes_prev.md
+	echo >> /tmp/notes_prev.md
 	for arg in $@
 	do
 	    abbrvname=`ls $today | grep $arg`
 	    if [[ ! $abbrvname ]]; then continue; fi
 	    cat $today$abbrvname >> /tmp/notes_prev.md
+	    echo '$\pagebreak$' >> /tmp/notes_prev.md
+	    echo >> /tmp/notes_prev.md
 	done
 	pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
 	open /tmp/notes_prev.pdf

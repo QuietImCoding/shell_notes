@@ -1,3 +1,4 @@
+#!/bin/bash
 _show_todays_notes() {
     for dir in $@
     do
@@ -19,19 +20,33 @@ _get_subjects() {
 
 _generate_toc() {
     echo "# Table of Contents #"
-    for f in $@
+    for subj in `_get_subjects $@ | uniq`
     do
-	echo "## Notes for $(_get_subjects $f) ##"
-	cur_inc=0
-	headers="$(cat $f | awk '$1 ~ "#+" { $1="";$NF=""; printf( "%s;", $0 )}')"
-	for i in $(seq 1 `awk -F";" '{print NF-1}' <<< "$headers"`)
-	do
-	    h="`echo $headers | cut -d';' -f"$i" | xargs`"
-	    id="$(echo $h | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
-	    echo "$((cur_inc + i)). [$h](#$id)"
-	done
-	cur_inc=$((cur_inc + i))
+	echo "## Notes for $subj ##"
 	echo
+	# Grep -o only outputs matching parts... who knew? not me
+	for f in `echo $@ | grep  -o -E "([^[:space:]]*${subj}.md[^[:space:]]*)"`
+	do
+	    cur_inc=0
+	    # Cat the file and get semicolon-delimited list of headers
+	    headers="$(cat $f | awk '$1 ~ "#+" { $1="";$NF=""; printf( "%s;", $0 )}')"
+	    # Loop over delimited header list
+	    for i in $(seq 1 `awk -F";" '{print NF-1}' <<< "$headers"`)
+	    do
+		# Get ith header
+		h="`echo $headers | cut -d';' -f"$i" | xargs`"
+		# Convert to id by lowercasing and adding dashes
+		id="$(echo $h | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+		if echo $h | grep -q 'Notes for'; then
+		    datehdr="`echo $h | sed -E 's/.*Notes for //g'`"
+		    echo "### [$datehdr](#$id) ###"
+		else
+		    echo "$((cur_inc + i)). [$h](#$id)"
+		fi
+	    done
+	    cur_inc=$((cur_inc + i))
+	    echo
+	done
     done
     echo '$\pagebreak$'
 }
@@ -83,11 +98,23 @@ _preview_notes() {
     fi
 }
 
-preview-note() {
-    pdfile=${1:0:$((${#1}-3))}.pdf
-    pandoc $1 -o $pdfile
-    open $pdfile
-    rm $pdfile
+preview-notes() {
+    listing="$(for note in $@; do echo $note; done)"
+    echo "`_generate_toc $listing`" > /tmp/notes_prev.md
+    echo >> /tmp/notes_prev.md
+    for fname in $listing
+    do
+	echo $fname
+	cat $fname >> /tmp/notes_prev.md
+	echo '$\pagebreak$' >> /tmp/notes_prev.md
+	echo >> /tmp/notes_prev.md
+    done
+    pandoc -o /tmp/notes_prev.pdf /tmp/notes_prev.md
+    open /tmp/notes_prev.pdf
+    # pdfile=${1:0:$((${#1}-3))}.pdf		
+    # pandoc $1 -o $pdfile			
+    # open $pdfile				
+    # rm $pdfile
 }
 
 notes() {

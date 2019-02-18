@@ -1,8 +1,12 @@
 #!/bin/bash
 
+_print_red() { printf "\x1B[31m$@\x1B[0m"; }
+_print_green() { printf "\x1B[32m$@\x1B[0m"; }
+_print_bu() { printf "\x1B[1m\x1B[4m$@\x1B[0m"; }
+
 # Shows a list of the notes you edited today
 _show_todays_notes() {
-    printf "\x1B[1m\x1B[4mYour notes from today:\x1B[0m\n"
+    _print_bu "Your notes from today:\n"
     for dir in $@
     do
 	dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
@@ -89,6 +93,32 @@ _preview_notes() {
     open /tmp/notes_prev.pdf
 }
 
+_upgrade_notes() {
+    echo "Upgrading to latest shell-notes version..."
+    cp ~/shell_notes/notes.bash $BASH_IT/custom/
+    cp ~/shell_notes/shell_completion.bash $BASH_IT/completion/custom.completion.bash
+    shit reload
+}
+
+_search_notes() {
+    query=`echo "(($@).*){$((${#@} / 2 + 1)),}" | sed -E 's/ +/\|/g'`
+    notelocs=`grep -iRE $query ~/notes/ | awk -F':' '{print $1}'`
+    notecontent=`grep -iRE $query ~/notes/ | sed -E 's:\*:\\\*:g' | awk -F':' '{printf("%s:", $2)}'`
+    ind=1
+    _print_bu "Search Results:\n"
+    for k in $notelocs
+    do
+	thiscont=`echo $notecontent | cut -d':' -f$ind`
+	subj=`_get_subjects $k`
+	fdate=`echo $k | cut -d'_' -f1,2,3 | grep -Eo '\w*_\w*' | sed 's/_/ /g'`
+	printf " - "
+	_print_red "$subj "
+	_print_green "on $fdate "
+	echo $thiscont
+	ind=$((ind + 1))
+    done
+}
+
 _preview_todays_notes() {
     today=~/notes/today/
     if [[ $# -eq 0 ]]; then
@@ -104,16 +134,20 @@ _preview_todays_notes() {
 notes() {
     _todays_notes
     fname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`_$1.md"
+
+    # What happens here is TRULY disgusting
     dub_at=""
     for i in $@; do dub_at="$dub_at $i $i "; done
     printf -v fnames "$HOME/notes/%s/`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`_%s.md " $dub_at $dub_at
     printf -v notesdirs "$HOME/notes/%s/ " $@
 
+    # Print usage message if no args
     if [[ $# -eq 0 ]]; then
 	echo 'Usage:'
         printf '\tnotes [[class_name]]: create / edit note file for todays class\n'
         printf '\tnotes today: list todays notes\n'
 	printf '\tnotes preview [[class_name]]: either previews all notes or the ones in class name\n'
+	printf '\tnotes update: update notes from git local repo\n'
 	return
     elif [[ $1 = 'preview' ]]; then
 	# Pass rest of arguments to _preview_todays_notes
@@ -121,6 +155,12 @@ notes() {
     elif [[ $1 = 'today' ]]; then
 	# List notes
 	_show_todays_notes $notesdirs
+	return
+    elif [[ $1 = 'update' ]]; then
+	_upgrade_notes
+	return
+    elif [[ $1 = 'search' ]]; then
+	_search_notes $2
 	return
     else
 	fnamelist=""
@@ -139,7 +179,7 @@ notes() {
 	    fi
 	
 	done
-	emacs $fnamelist
+	edit $fnamelist
     fi
 	 
 }

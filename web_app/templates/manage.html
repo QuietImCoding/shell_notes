@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage {{groupname}}</title>
+</head>
+<body>
+    <h1>Manage {{groupname}}</h1>
+    <form method="post" action="/upload/{{group_id}}" enctype = "multipart/form-data">
+        <p>Upload your page template</p><input type="file" name="file"/><br>
+        <input type="submit" name="submit" value="submit"/>
+    </form>
+    <h3><a href="/preview/group/{{group_id}}">Preview this group</a></h3>
+</body>
+</html>

@@ -1,0 +1,3 @@
+CREATE TABLE Users (Username TEXT PRIMARY KEY, Passhash TEXT, Token TEXT);
+CREATE TABLE InfoGroup (GroupID INT PRIMARY KEY, GroupName TEXT, Owner TEXT, GroupTemplate TEXT);
+.exit

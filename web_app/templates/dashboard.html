@@ -1,0 +1,12 @@
+<html>
+<head>
+    <title>Your Notes</title>
+</head>
+<body>
+    <h1>Welcome {{user}}</h1>
+    <h2>Click the links below to view your notes</h2>
+    {% for note in notelinks %}
+    <p><a href="/manage/notes/{{noteslinks[note]}}">{{g}}</a></p>
+    {% endfor %}
+</body>
+</html>

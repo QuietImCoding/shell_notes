@@ -5,7 +5,10 @@ from utils import dbutils as db
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+rkey = str(random.getrandbits(50))
+app.secret_key = rkey
+
 db.getCursorFromFile('data/data.db')
 
 def check_logged_in():
@@ -28,7 +31,7 @@ def manage():
     check_logged_in()
     if "username" in session:
         return render_template("dashboard.html", user=session["username"],
-                               noteslinks={"a": "b"})
+                               token=db.getToken(session["username"]))
     else:
         return redirect(url_for(login))
 
@@ -111,8 +114,5 @@ def protected(gid, filename):
         return str(db.getGroupsForOwner(session["username"]).values())
 
 
-if __name__ == "__main__":
-    app.debug = True
-    rkey = str(random.getrandbits(50))
-    app.secret_key = rkey
-    app.run()
+#if __name__ == "__main__":
+    #app.run()

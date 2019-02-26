@@ -1,12 +1,16 @@
 <html>
-<head>
+  <head>
     <title>Your Notes</title>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Welcome {{user}}</h1>
     <h2>Click the links below to view your notes</h2>
+    {% if token != '' %}
+    <h3>You have not yet registered your notes application with the server.</h3>
+    <h3>Use <i>notes register {{token}}</i> to get setup</h3>
+    {% endif %}
     {% for note in notelinks %}
     <p><a href="/manage/notes/{{noteslinks[note]}}">{{note}}</a></p>
     {% endfor %}
-</body>
+  </body>
 </html>

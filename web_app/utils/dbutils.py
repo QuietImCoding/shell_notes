@@ -23,11 +23,16 @@ def getNewId(table):
     else:
         return 0
 
+def getToken(uname):
+    cur.execute("Select Token FROM Users WHERE Username = ?", (uname,))
+    return cur.fetchone()[0]
+    
 def checkToken(tok):
     cur.execute("SELECT Username, Token FROM Users")
     result = cur.fetchall()
-    alltok = {entry[1] : entry[0] for entry in result}
+    alltok = {entry[1] : entry[0] for entry in result if entry[1] != ""}
     if tok in alltok:
+        cur.execute("UPDATE Users SET Token = '' WHERE Username = ?", (alltok[tok],))
         return alltok[tok]
     return False
     

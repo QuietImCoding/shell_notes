@@ -1,0 +1,13 @@
+server {
+listen 80;
+server_name bashnotes.com www.bashnotes.com;
+
+access_log  /var/log/nginx/bashnotes.access.log;
+error_log /var/log/nginx/bashnotes.error.log;
+
+location / {
+include uwsgi_params;
+uwsgi_pass unix:/home/{{YOURNAMEHERE}}/bash_notes/bash_notes.sock;
+}
+
+}	    

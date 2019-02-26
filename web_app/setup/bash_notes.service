@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve myproject
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/home/{{YOURNAMEHERE}}/bash_notes
+Environment="PATH=/home/{{YOURNAMEHERE}}/bash_notes/projenv/bin"
+ExecStart=/home/{{YOURNAMEHERE}}/bash_notes/projenv/bin/uwsgi --ini bash_notes.ini
+
+[Install]
+WantedBy=multi-user.target

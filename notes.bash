@@ -27,11 +27,18 @@ _get_subjects() {
 }
 
 _register_notes() {
-    printf "Enter bashnotes.com token: "
-    read -s token
-    res=`curl bashnotes.com/tokencheck -d $token`
-    if res | grep -q 'git'; then
-	git clone 
+    remote=$(curl bashnotes.com/tokencheck -X POST \
+	       -F "user-token=$1" \
+	       -F "ssh-key=`cat ~/.ssh/id_rsa.pub`")
+    git init ~/notes/
+    curloc=`pwd`
+    cd ~/notes/
+    git remote add origin $remote
+    git push --set-upstream origin master
+    git add */*
+    git commit -m "initial commit"
+    git push
+    cd $curloc
 }
 
 _generate_toc() {
@@ -163,6 +170,9 @@ notes() {
     elif [[ $1 = 'today' ]]; then
 	# List notes
 	_show_todays_notes $notesdirs
+	return
+    elif [[ $1 = 'register' ]]; then
+	_register_notes $2
 	return
     elif [[ $1 = 'update' ]]; then
 	_upgrade_notes

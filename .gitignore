@@ -2,3 +2,5 @@ web_app/repos/*
 \#*#
 *~
 */__pycache__/*
+projenv/
+data/*

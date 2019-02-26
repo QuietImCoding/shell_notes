@@ -9,7 +9,6 @@ app = Flask(__name__)
 db.getCursorFromFile('data/data.db')
 
 def check_logged_in():
-    print(str(session.keys()))
     if 'username' not in session.keys():
         return redirect(url_for("login"))
 
@@ -27,17 +26,23 @@ def home():
 @app.route("/manage")
 def manage():
     check_logged_in()
-    return render_template("dashboard.html", user=session["username"],
-                               notelinks={"a": "b"})
+    if "username" in session:
+        return render_template("dashboard.html", user=session["username"],
+                               noteslinks={"a": "b"})
+    else:
+        return redirect(url_for(login))
+
 # Check tokens
 @app.route("/tokencheck", methods=['POST'])
 def tokcheck():
-    if db.checkToken(request.get_data()):
-        akeys=open("~/.ssh/authorized-keys", 'a')
+    username = db.checkToken(request.form['user-token'])
+    if username:
+        san_uname = username.replace('/', '')
+        akeys=open("/Users/daniel.monteagudo/.ssh/authorized_keys", 'a')
         akeys.write(request.form["ssh-key"])
         akeys.close()
-        os.system("git init --bare %s" % (username.replace('/', '')))
-        return "ssh://bashnotes.com:~/bashnotes"
+        os.system("git init --bare repos/%s" % (san_uname))
+        return "ssh://bashnotes.com:%s/repos/%s" % (os.getcwd(), san_uname)
         return "GOOD TOKEN"
     return "BAD TOKEN"
 
@@ -72,12 +77,16 @@ def login():
             conf = request.form["conf"]
             if conf == pw and db.nameAvailable(uname):
                 hashpw = bcrypt.hashpw(pw.encode("UTF-8"), bcrypt.gensalt())
-                db.execQuery("INSERT INTO Users VALUES (?, ?, ?)", (uname, hashpw, secrets.token_hex()))
+                db.execQuery("INSERT INTO Users VALUES (?, ?, ?)", (uname, hashpw, secrets.token_hex(20)))
+                session["username"] = uname
+                print(session["username"])
                 return redirect(url_for("manage"))
             pwhash = db.getPWHash(uname)
             success = pwhash is not None and bcrypt.hashpw(pw.encode("UTF-8"), pwhash) == pwhash
             if success:
                 session["username"] = uname
+            else:
+                redirect(url_for("login"))
         return redirect(url_for("manage"))
 
 

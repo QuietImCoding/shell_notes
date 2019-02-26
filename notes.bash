@@ -26,6 +26,13 @@ _get_subjects() {
     done
 }
 
+_register_notes() {
+    printf "Enter bashnotes.com token: "
+    read -s token
+    res=`curl bashnotes.com/tokencheck -d $token`
+    if res | grep -q 'git'; then
+	git clone 
+}
 
 _generate_toc() {
     echo "# Table of Contents #"
@@ -66,7 +73,7 @@ _todays_notes() {
     rm ~/notes/today/* 2>/dev/null
     rm `find ~/notes/ | grep '~'` 2>/dev/null
     dname="`date | awk '{ printf \"%s_%d_%d\", $2, $3, $6 }'`"
-    for fname in `find ~/notes | grep md$`
+    for fname in `find ~/notes | grep ^[^#].*md$`
     do
 	if [[ $fname = *$dname* ]]; then
 	    cp $fname ~/notes/today/
@@ -102,6 +109,7 @@ _upgrade_notes() {
 
 _search_notes() {
     query=`echo "(($@).*){$((${#@} / 2 + 1)),}" | sed -E 's/ +/\|/g'`
+    echo $query
     notelocs=`grep -iRE $query ~/notes/ | awk -F':' '{print $1}'`
     notecontent=`grep -iRE $query ~/notes/ | sed -E 's:\*:\\\*:g' | awk -F':' '{printf("%s:", $2)}'`
     ind=1
@@ -177,9 +185,9 @@ notes() {
 	    if [[ ! -s $fname ]]; then
 		echo "# $dirname Notes for `date | awk '{print $2, $3, $6}'` #" > $fname
 	    fi
-	
+	    echo $fname
 	done
-	edit $fnamelist
+	edit $fname
     fi
 	 
 }

@@ -24,9 +24,11 @@ def getNewId(table):
         return 0
 
 def checkToken(tok):
-    cur.execute("SELECT Token FROM Users")
+    cur.execute("SELECT Username, Token FROM Users")
     result = cur.fetchall()
-    if result is not None and tok in result: return True
+    alltok = {entry[1] : entry[0] for entry in result}
+    if tok in alltok:
+        return alltok[tok]
     return False
     
 def nameAvailable(uname):

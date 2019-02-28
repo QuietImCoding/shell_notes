@@ -1,6 +1,6 @@
 _notes()
 {
-    accepted_cmds="preview update search register"
+    accepted_cmds="preview update search register push"
     local cur=${COMP_WORDS[COMP_CWORD]}
     COMPREPLY=( $(compgen -W "$accepted_cmds `ls ~/notes/`" -- $cur) )
 }

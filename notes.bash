@@ -32,7 +32,7 @@ r $1
 d
 }"
 
-    sed "$sedcommand" ~/shell_notes/jinja-shell.txt
+    sed "$sedcommand" ~/shell_notes/jinja-shell.txt | sed -e 's/%7B/{/g' -e 's/%7D/}/g'
 }
 
 _push_notes() {
@@ -42,7 +42,7 @@ _push_notes() {
 	fname="$(echo "$fullname" | rev | cut -d '/' -f1 | rev)"
 	echo $fname
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
-	pandoc "$fullname" -o $outf
+	pandoc "$fullname" -o $outf 
 	echo "$(_wrap_block $outf)" > $outf
     done
     rm ~/notes/toc.md
@@ -89,14 +89,14 @@ _generate_toc() {
 	    do
 		# Get ith header
 		
-		h="$(echo "$headers" | cut -d';' -f"$i" | xargs)"
+		h="$(echo "$headers" | cut -d';' -f"$i" | sed "s/[\"']/\\\'/g" | xargs)"
 		# Convert to id by lowercasing and adding dashes
 		id="$(echo "$h" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
 		if echo "$h" | grep -q 'Notes for'; then
 		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g' | tr ' ' '_')"
-		    echo "### [$datehdr](/$subj/$datehdr) ###"
+		    echo "### [$datehdr](/{{user}}/$subj/$datehdr) ###"
 		else
-		    echo "$((cur_inc + i)). [$h](/$subj/$datehdr#$id)"
+		    echo "$((cur_inc + i)). [$h](/{{username}}/$subj/$datehdr#$id)"
 		fi
 	    done
 	    cur_inc=$((cur_inc + i))

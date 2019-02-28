@@ -26,12 +26,26 @@ _get_subjects() {
     done
 }
 
+_wrap_block() {
+    sedcommand="/{{content}}/ {
+r $1
+d
+}"
+
+    sed "$sedcommand" ~/shell_notes/jinja-shell.txt
+}
+
 _push_notes() {
     curloc=$(pwd)
+    _generate_toc "$(find ~/notes/ -type f -not -path '*/\.*')" > ~/notes/toc.md
     for fullname in $(find ~/notes/ -type f -not -path '*/\.*'); do
 	fname="$(echo "$fullname" | rev | cut -d '/' -f1 | rev)"
-	pandoc "$fullname" -o ~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
+	echo $fname
+	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
+	pandoc "$fullname" -o $outf
+	echo "$(_wrap_block $outf)" > $outf
     done
+    rm ~/notes/toc.md
     cd ~/notes/.rendered || return
     git add ./*
     git commit -m "Pushed on $(date)"
@@ -74,21 +88,22 @@ _generate_toc() {
 	    for i in $(seq 1 "$(awk -F";" '{print NF-1}' <<< "$headers")")
 	    do
 		# Get ith header
+		
 		h="$(echo "$headers" | cut -d';' -f"$i" | xargs)"
 		# Convert to id by lowercasing and adding dashes
 		id="$(echo "$h" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
 		if echo "$h" | grep -q 'Notes for'; then
-		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g')"
-		    echo "### [$datehdr](#$id) ###"
+		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g' | tr ' ' '_')"
+		    echo "### [$datehdr](/$subj/$datehdr) ###"
 		else
-		    echo "$((cur_inc + i)). [$h](#$id)"
+		    echo "$((cur_inc + i)). [$h](/$subj/$datehdr#$id)"
 		fi
 	    done
 	    cur_inc=$((cur_inc + i))
 	    echo
 	done
     done
-    echo '$\pagebreak$'
+    #echo '$\pagebreak$'
 }
 
 
@@ -171,7 +186,7 @@ notes() {
     # What happens here is TRULY disgusting
     dub_at=""
     for i in "$@"; do dub_at="$dub_at $i $i "; done
-    printf -v fnames "$HOME/notes/%s/$(date | awk '{ printf("%s_%d_%d", $2, $3, $6) }')_%s.md " "$dub_at" "$dub_at"
+    printf -v fnames "$HOME/notes/%s/$(date | awk '{ printf("%s_%d_%d", $2, $3, $6) }')_%s.md " $dub_at $dub_at
     printf -v notesdirs "$HOME/notes/%s/ " "$@"
 
     # Print usage message if no args
@@ -207,6 +222,7 @@ notes() {
 	do
 	    notesdir=$(echo "$notesdirs" | cut -d" " -f"$k")
 	    fname=$(echo "$fnames" | cut -d" " -f"$k")
+	    
 	    dirname=$(echo "$@" | cut -d" " -f"$k")
 	    fnamelist="$fnamelist $fname "
 

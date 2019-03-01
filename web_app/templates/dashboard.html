@@ -9,6 +9,7 @@
     <h3>You have not yet registered your notes application with the server.</h3>
     <h3>Use <i>notes register {{token}}</i> to get setup</h3>
     {% endif %}
+    <a href="/{{user}}">Your notes</a>
     {% for note in notelinks %}
     <p><a href="/manage/notes/{{noteslinks[note]}}">{{note}}</a></p>
     {% endfor %}

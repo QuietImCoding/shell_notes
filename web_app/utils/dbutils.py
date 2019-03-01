@@ -33,6 +33,7 @@ def checkToken(tok):
     alltok = {entry[1] : entry[0] for entry in result if entry[1] != ""}
     if tok in alltok:
         cur.execute("UPDATE Users SET Token = '' WHERE Username = ?", (alltok[tok],))
+        conn.commit()
         return alltok[tok]
     return False
     

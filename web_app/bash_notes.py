@@ -5,9 +5,9 @@ from utils import dbutils as db
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-
 rkey = str(random.getrandbits(50))
 app.secret_key = rkey
+app.debug = True
 
 db.getCursorFromFile('data/data.db')
 
@@ -18,12 +18,11 @@ def check_logged_in():
 def get_group_path(group_id ):
     base_path = os.path.join("groups", str(group_id))
     return base_path
-    # return os.path.join("groups", str(group_id))
 
 # Serve up the zesty homepage
 @app.route("/")
 def home():
-    return redirect(url_for("login"))
+    return redirect(url_for("manage"))
 
 # Routes related to managing the server
 @app.route("/manage")
@@ -33,7 +32,7 @@ def manage():
         return render_template("dashboard.html", user=session["username"],
                                token=db.getToken(session["username"]))
     else:
-        return redirect(url_for(login))
+        return redirect(url_for("login"))
 
 # Check tokens
 @app.route("/tokencheck", methods=['POST'])
@@ -41,12 +40,16 @@ def tokcheck():
     username = db.checkToken(request.form['user-token'])
     if username:
         san_uname = username.replace('/', '')
-        akeys=open("/Users/daniel.monteagudo/.ssh/authorized_keys", 'a')
-        akeys.write(request.form["ssh-key"])
+        curdir = os.cwd()
+        akeys=open("/home/%s/.ssh/authorized_keys" % (os.environ["USER"]), 'a')
+        akeys.write('\nCOMMAND="/bin/nologin" ' + request.form["ssh-key"] + '\n')
         akeys.close()
-        os.system("git init --bare repos/%s" % (san_uname))
-        return "ssh://bashnotes.com:%s/repos/%s" % (os.getcwd(), san_uname)
-        return "GOOD TOKEN"
+        outpath ="%s/repos/%s.git" % (curdir, san_uname)
+        print(outpath)
+        os.system("/usr/bin/git init --bare %s" % outpath)
+        os.system("/usr/bin/git clone %s/repos/%s.git %s/templates/clones/%s",
+                  (curdir, san_uname,curdir,san_uname))
+        return "ssh://bashnotes.com:%s" % (outpath)
     return "BAD TOKEN"
 
 
@@ -63,6 +66,16 @@ def creategroup():
         new_group = os.path.join('groups', str(gid))
         os.mkdir(new_group)
         return redirect(url_for("manage"))
+
+@app.route('/<usrname>')
+def show_toc(usrname):
+    check_logged_in()
+    return render_template("clones/%s/toc.html" % (usrname), username=usrname)
+
+@app.route('/<usrname>/<subj>/<date>')
+def show_note(usrname, subj, date):
+    check_logged_in()
+    return render_template("clones/%s/%s.html" % (usrname, date + '_' + subj), username=usrname)
 
 @app.route('/preview/group/<int:gid>')
 def preview_group(gid):

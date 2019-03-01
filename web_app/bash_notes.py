@@ -40,15 +40,14 @@ def tokcheck():
     username = db.checkToken(request.form['user-token'])
     if username:
         san_uname = username.replace('/', '')
-        curdir = os.cwd()
+        curdir = os.getcwd()
         akeys=open("/home/%s/.ssh/authorized_keys" % (os.environ["USER"]), 'a')
         akeys.write('\nCOMMAND="/bin/nologin" ' + request.form["ssh-key"] + '\n')
         akeys.close()
         outpath ="%s/repos/%s.git" % (curdir, san_uname)
-        print(outpath)
         os.system("/usr/bin/git init --bare %s" % outpath)
-        os.system("/usr/bin/git clone %s/repos/%s.git %s/templates/clones/%s",
-                  (curdir, san_uname,curdir,san_uname))
+        print("INITIALIZING REPO: ", curdir, san_uname)
+        os.system("/usr/bin/git clone %s/repos/%s.git %s/templates/clones/%s" % (curdir, san_uname,curdir,san_uname))
         return "ssh://bashnotes.com:%s" % (outpath)
     return "BAD TOKEN"
 

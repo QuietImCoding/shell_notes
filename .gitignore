@@ -4,4 +4,4 @@ web_app/templates/clones/*
 *~
 ./*__pycache__/*
 projenv/
-web_app/data/*
+web_app/data/data.db

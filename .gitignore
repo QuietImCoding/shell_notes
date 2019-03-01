@@ -1,6 +1,7 @@
 web_app/repos/*
+web_app/templates/clones/*
 \#*#
 *~
-*/__pycache__/*
+./*/__pycache__/*
 projenv/
-data/*
+web_app/data/*

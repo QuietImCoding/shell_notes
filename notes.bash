@@ -32,7 +32,10 @@ r $1
 d
 }"
 
-    sed "$sedcommand" ~/shell_notes/jinja-shell.txt | sed -e 's/%7B/{/g' -e 's/%7D/}/g'
+    sed "$sedcommand" ~/shell_notes/jinja-shell.txt |
+	sed -e 's/%7B/{/g' -e 's/%7D/}/g' |
+	sed -E 's/h2 id="notes-for-(.*)">/h2 id="notes-for-\1" aria-expanded="false" data-toggle="collapse" href="#\1-div">/g' | sed -E -e 's/<h2/<h2><a/g' -e 's/<\/h2>/<\/a><\/h2>/g' 
+
 }
 
 _push_notes() {
@@ -43,8 +46,9 @@ _push_notes() {
 	echo $fname
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
 	pandoc "$fullname" -o $outf 
-	echo "$(_wrap_block $outf)" > $outf
+	# echo "$(_wrap_block $outf)" > $outf
     done
+    echo "$(_wrap_block ~/notes/.rendered/toc.html)" > ~/notes/.rendered/toc.html
     rm ~/notes/toc.md
     cd ~/notes/.rendered || return
     git add ./*
@@ -56,7 +60,7 @@ _push_notes() {
 _register_notes() {
     printf "Which ssh key do you want to use?  "
     read -r keyfile
-    remote=$(curl bashnotes.com/tokencheck -X POST \
+    remote=$(curl https://bashnotes.com/tokencheck -X POST \
 	       -F "user-token=$1" \
 	       -F "ssh-key=$(cat ~/.ssh/"$keyfile".pub)")
     if echo $remote | grep -q 'BAD'; then return; fi
@@ -77,6 +81,7 @@ _generate_toc() {
     for subj in $(_get_subjects "$@" | sort | uniq)
     do
 	echo "## Notes for $subj ##"
+	echo "<div class=\"collapse\" id=\"${subj}-div\">"
 	echo
 	# Grep -o only outputs matching parts... who knew? not me
 	for f in $(echo "$@" |
@@ -94,15 +99,19 @@ _generate_toc() {
 		# Convert to id by lowercasing and adding dashes
 		id="$(echo "$h" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
 		if echo "$h" | grep -q 'Notes for'; then
-		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g' | tr ' ' '_')"
-		    echo "### [$datehdr](/{{username}}/$subj/$datehdr) ###"
+		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g')"
+		    und_hdr="$(echo $datehdr | tr ' ' '_')"
+		    echo "### [$datehdr](/{{username}}/$subj/$und_hdr) ###"
+
 		else
-		    echo "$((cur_inc)). [$h](/{{username}}/$subj/$datehdr#$id)"
+		    echo "$((cur_inc)). [$h](#$id)"
 		fi
 	    done
+
 	    cur_inc=$((cur_inc + i))
 	    echo
 	done
+	echo "</div>"
     done
     #echo '$\pagebreak$'
 }
@@ -231,7 +240,7 @@ notes() {
 		mkdir "$notesdir"
 	    fi
 	    if [[ ! -s $fname ]]; then
-		echo "# $dirname Notes for $(date | awk 'printf("%s_%02d_%d", $2, $3, $6)}') #" > "$fname"
+		echo "# $dirname Notes for $(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }') #" > "$fname"
 	    fi
 	    echo "$fname"
 	done

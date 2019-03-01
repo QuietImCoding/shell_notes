@@ -1,0 +1,13 @@
+#!/bin/bash
+
+oldwd="$(pwd)"
+fname="$(pwd | rev | cut -d'/' -f 1 | rev)"
+loc="$oldwd"/../../templates/clones/"${fname:0:$((${#fname} - 4))}"
+
+cd "$loc"
+echo "$(pwd)"
+git --git-dir="$(pwd)/.git" --work-tree="$(pwd)" pull
+
+
+cd "$oldwd"
+

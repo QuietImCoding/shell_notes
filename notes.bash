@@ -9,7 +9,7 @@ _show_todays_notes() {
     _print_bu "Your notes from today:"
     for dir in "$@"
     do
-	dname="$(date | awk '{ printf("%s_%d_%d", $2, $3, $6) }')"
+	dname="$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')"
 	for fname in $(ls $dir)
 	do
 	    tosnip="${fname:$((${#dname}+1)):${#fname}}"
@@ -26,12 +26,26 @@ _get_subjects() {
     done
 }
 
+_wrap_block() {
+    sedcommand="/{{content}}/ {
+r $1
+d
+}"
+
+    sed "$sedcommand" ~/shell_notes/jinja-shell.txt | sed -e 's/%7B/{/g' -e 's/%7D/}/g'
+}
+
 _push_notes() {
     curloc=$(pwd)
+    _generate_toc "$(find ~/notes/ -type f -not -path '*/\.*')" > ~/notes/toc.md
     for fullname in $(find ~/notes/ -type f -not -path '*/\.*'); do
 	fname="$(echo "$fullname" | rev | cut -d '/' -f1 | rev)"
-	pandoc "$fullname" -o ~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
+	echo $fname
+	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
+	pandoc "$fullname" -o $outf 
+	echo "$(_wrap_block $outf)" > $outf
     done
+    rm ~/notes/toc.md
     cd ~/notes/.rendered || return
     git add ./*
     git commit -m "Pushed on $(date)"
@@ -59,36 +73,37 @@ _register_notes() {
 
 _generate_toc() {
     echo "# Table of Contents #"
-    for subj in $(_get_subjects "$@" | uniq)
+    for subj in $(_get_subjects "$@" | sort | uniq)
     do
 	echo "## Notes for $subj ##"
 	echo
 	# Grep -o only outputs matching parts... who knew? not me
 	for f in $(echo "$@" |
-		       grep  -o -E "([^[:space:]]*${subj}.md[^[:space:]]*)")
+		       grep  -o -E "([^[:space:]]*${subj}.md[^[:space:]]*)" | sort)
 	do
-	    cur_inc=0
+	    cur_inc=1
 	    # Cat the file and get semicolon-delimited list of headers
 	    headers="$(awk '$1 ~ "#+" { $1="";$NF="";printf( "%s;", $0 )}' < "$f")"
 	    # Loop over delimited header list
 	    for i in $(seq 1 "$(awk -F";" '{print NF-1}' <<< "$headers")")
 	    do
 		# Get ith header
-		h="$(echo "$headers" | cut -d';' -f"$i" | xargs)"
+		# This statement is slowly becoming the bane of my existence
+		h="$(echo "$headers" | cut -d';' -f"$i" | sed -e "s/'/\\\'/g" -e 's/[():]//g' | xargs)"
 		# Convert to id by lowercasing and adding dashes
 		id="$(echo "$h" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
 		if echo "$h" | grep -q 'Notes for'; then
-		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g')"
-		    echo "### [$datehdr](#$id) ###"
+		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g' | tr ' ' '_')"
+		    echo "### [$datehdr](/{{username}}/$subj/$datehdr) ###"
 		else
-		    echo "$((cur_inc + i)). [$h](#$id)"
+		    echo "$((cur_inc)). [$h](/{{username}}/$subj/$datehdr#$id)"
 		fi
 	    done
 	    cur_inc=$((cur_inc + i))
 	    echo
 	done
     done
-    echo '$\pagebreak$'
+    #echo '$\pagebreak$'
 }
 
 
@@ -96,7 +111,7 @@ _generate_toc() {
 _todays_notes() {
     rm ~/notes/today/* 2>/dev/null
     rm "$(find ~/notes/ | grep '~')" 2>/dev/null
-    dname="$(date | awk '{ printf("%s_%d_%d", $2, $3, $6) }')"
+    dname="$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')"
     for fname in $(find ~/notes | grep '^[^#].*md$')
     do
 	if [[ $fname = *$dname* ]]; then
@@ -166,12 +181,12 @@ _preview_todays_notes() {
 
 notes() {
     _todays_notes
-    fname="$(date | awk '{ printf("%s_%d_%d", $2, $3, $6) }')_$1.md"
+    fname="$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')_$1.md"
 
     # What happens here is TRULY disgusting
     dub_at=""
     for i in "$@"; do dub_at="$dub_at $i $i "; done
-    printf -v fnames "$HOME/notes/%s/$(date | awk '{ printf("%s_%d_%d", $2, $3, $6) }')_%s.md " "$dub_at" "$dub_at"
+    printf -v fnames "$HOME/notes/%s/$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')_%s.md " $dub_at $dub_at
     printf -v notesdirs "$HOME/notes/%s/ " "$@"
 
     # Print usage message if no args
@@ -207,6 +222,7 @@ notes() {
 	do
 	    notesdir=$(echo "$notesdirs" | cut -d" " -f"$k")
 	    fname=$(echo "$fnames" | cut -d" " -f"$k")
+	    
 	    dirname=$(echo "$@" | cut -d" " -f"$k")
 	    fnamelist="$fnamelist $fname "
 
@@ -214,7 +230,7 @@ notes() {
 		mkdir "$notesdir"
 	    fi
 	    if [[ ! -s $fname ]]; then
-		echo "# $dirname Notes for $(date | awk '{print $2, $3, $6}') #" > "$fname"
+		echo "# $dirname Notes for $(date | awk 'printf("%s_%02d_%d", $2, $3, $6)}') #" > "$fname"
 	    fi
 	    echo "$fname"
 	done

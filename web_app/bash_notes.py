@@ -11,13 +11,8 @@ app.debug = True
 
 db.getCursorFromFile('data/data.db')
 
-def check_logged_in():
-    if 'username' not in session.keys():
-        return redirect(url_for("login"))
-
-def get_group_path(group_id ):
-    base_path = os.path.join("groups", str(group_id))
-    return base_path
+def logged_out():
+    return'username' not in session.keys()
 
 # Serve up the zesty homepage
 @app.route("/")
@@ -27,7 +22,7 @@ def home():
 # Routes related to managing the server
 @app.route("/manage")
 def manage():
-    check_logged_in()
+    if logged_out(): return redirect(url_for("login"))
     if "username" in session:
         return render_template("dashboard.html", user=session["username"],
                                token=db.getToken(session["username"]))
@@ -52,35 +47,15 @@ def tokcheck():
         return "ssh://bashnotes.com:%s" % (outpath)
     return "BAD TOKEN"
 
-
-@app.route("/manage/creategroup", methods=['GET', 'POST'])
-def creategroup():
-    check_logged_in()
-    if request.method == 'GET':
-        return render_template('create_group.html')
-    elif request.method == 'POST':
-        gname = request.form["group-name"]
-        gid = db.getNewId("InfoGroup")
-        gowner = session['username']
-        db.createGroup(gname, gid, gowner)
-        new_group = os.path.join('groups', str(gid))
-        os.mkdir(new_group)
-        return redirect(url_for("manage"))
-
 @app.route('/<usrname>')
 def show_toc(usrname):
-    check_logged_in()
+    if logged_out(): return redirect(url_for("login"))
     return render_template("clones/%s/toc.html" % (usrname), username=usrname)
 
 @app.route('/<usrname>/<subj>/<date>')
 def show_note(usrname, subj, date):
-    check_logged_in()
+    if logged_out(): return redirect(url_for("login"))
     return render_template("clones/%s/%s.html" % (usrname, date + '_' + subj), username=usrname)
-
-@app.route('/preview/group/<int:gid>')
-def preview_group(gid):
-    check_logged_in()
-    return render_template("groups/" + str(gid) + ".html", group_id = gid, media = os.listdir(get_group_path(gid)))
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -104,28 +79,6 @@ def login():
             else:
                 redirect(url_for("login"))
         return redirect(url_for("manage"))
-
-
-# The route for connecting to the server
-@app.route("/connect")
-def connect():
-    return "You are now KONNECTED"
-
-
-@app.route('/protected/<int:gid>/<filename>')
-def protected(gid, filename):
-    check_logged_in()
-    print(session.keys())
-    print(session.get("username"))
-    print(db.getGroupsForOwner(session.get("username")))
-    if gid in db.getGroupsForOwner(session["username"]).values():
-        return send_from_directory(
-            "groups/" + str(gid),
-            filename
-        )
-    else:
-        return str(db.getGroupsForOwner(session["username"]).values())
-
 
 #if __name__ == "__main__":
     #app.run()

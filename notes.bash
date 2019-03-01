@@ -27,6 +27,8 @@ _get_subjects() {
 }
 
 _wrap_block() {
+    # I am very scared of touching this sed command
+    # If you see this comment and want to indent it consider yourself warned.
     sedcommand="/{{content}}/ {
 r $1
 d
@@ -46,7 +48,6 @@ _push_notes() {
 	echo $fname
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
 	pandoc "$fullname" -o $outf 
-	# echo "$(_wrap_block $outf)" > $outf
     done
     echo "$(_wrap_block ~/notes/.rendered/toc.html)" > ~/notes/.rendered/toc.html
     rm ~/notes/toc.md

@@ -19,19 +19,6 @@ def logged_out():
 def home():
     return redirect(url_for("login"))
 
-'''
-# Routes related to managing the server
-@app.route("/manage")
-def manage():
-    if logged_out(): return redirect(url_for("login"))
-    if "username" in session:
-        return render_template("dashboard.html", user=session["username"],
-                               token=db.getToken(session["username"]))
-    else:
-        return redirect(url_for("login"))
-'''
-
-    
 @app.route("/logout")
 def logout():
     session.pop("username")
@@ -50,7 +37,7 @@ def tokcheck():
         outpath ="%s/repos/%s.git" % (curdir, san_uname)
         os.system("/usr/bin/git init --bare %s" % outpath)
         print("INITIALIZING REPO: ", curdir, san_uname)
-        os.system("cp %s/post-receive %s/repos/%s.git/hooks" % (curdir,curdir,san_uname))
+        os.system("/bin/cp %s/post-receive %s/repos/%s.git/hooks" % (curdir,curdir,san_uname))
         os.system("/usr/bin/git clone %s/repos/%s.git %s/templates/clones/%s" % (curdir, san_uname,curdir,san_uname))
         return "ssh://bashnotes.com:%s" % (outpath)
     return "BAD TOKEN"

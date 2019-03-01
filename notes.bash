@@ -59,6 +59,7 @@ _register_notes() {
     remote=$(curl bashnotes.com/tokencheck -X POST \
 	       -F "user-token=$1" \
 	       -F "ssh-key=$(cat ~/.ssh/"$keyfile".pub)")
+    if echo $remote | grep -q 'BAD'; then return; fi
     git init ~/notes/.rendered
     curloc=$(pwd)
     cd ~/notes/.rendered || return

@@ -34,10 +34,10 @@ r $1
 d
 }"
 
-    sed "$sedcommand" ~/shell_notes/jinja-shell.txt |
+    sed "$sedcommand" $BASH_NOTES/jinja-shell.txt |
 	sed -e 's/%7B/{/g' -e 's/%7D/}/g' |
-	sed -E 's/h2 id="notes-for-(.*)">/h2 id="notes-for-\1" aria-expanded="false" data-toggle="collapse" href="#\1-div">/g' | sed -E -e 's/<h2/<h2><a/g' -e 's/<\/h2>/<\/a><\/h2>/g' 
-
+	sed -E 's/h2 id="notes-for-(.*)">/h2 id="notes-for-\1" aria-expanded="false" data-toggle="collapse" href="#\1-div">/g' |
+	sed -E -e 's/<h2/<h2><a/g' -e 's/<\/h2>/<\/a><\/h2>/g' 
 }
 
 _push_notes() {

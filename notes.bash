@@ -153,9 +153,14 @@ _preview_notes() {
 
 _upgrade_notes() {
     echo "Upgrading to latest shell-notes version..."
-    cp ~/shell_notes/notes.bash "$BASH_IT"/custom/
-    cp ~/shell_notes/shell_completion.bash "$BASH_IT"/completion/custom.completion.bash
-    shit reload
+    if [[ -n $BASH_IT ]]; then
+	cp ~/shell_notes/notes.bash "$BASH_IT"/custom/
+	cp ~/shell_notes/shell_completion.bash "$BASH_IT"/completion/custom.completion.bash
+	shit reload
+    else
+	cp ~/shell_notes/notes.bash ~/.notes.bash
+	cat ~/shell_notes/shell_completion.bash >> ~/.notes.bash
+    fi
 }
 
 _search_notes() {

@@ -165,10 +165,10 @@ _upgrade_notes() {
 
 _search_notes() {
     query=$(echo "(($@).*){$((${#@} / 2 + 1)),}" | sed -E 's/ +/\|/g')
-    notelocs=$(grep -iRE "$query" ~/notes/ | awk -F':' '{print $1}')
-    notecontent=$(grep -iRE "$query" ~/notes/ | sed -E 's:\*:\\\*:g' | awk -F':' '{printf("%s:", $2)}')
+    notelocs=$(grep -iRE "$query" ~/notes --exclude-dir .rendered| awk -F':' '{print $1}')
+    notecontent=$(grep -iRE "$query" ~/notes --exclude-dir .rendered | sed -E 's:\*:\\\*:g' | awk -F':' '{printf("%s:", $2)}')
     ind=1
-    _print_bu "Search Results:\n"
+    _print_bu "Search Results:"
     for k in $notelocs
     do
 	thiscont=$(echo "$notecontent" | cut -d':' -f$ind)

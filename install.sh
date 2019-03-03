@@ -22,4 +22,3 @@ fi
 mkdir -p ~/notes/today
 rm *~ 2>/dev/null
 
-source ~/.bashrc

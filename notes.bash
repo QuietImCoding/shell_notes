@@ -34,7 +34,7 @@ r $1
 d
 }"
 
-    sed "$sedcommand" $BASH_NOTES/jinja-shell.txt |
+    sed "$sedcommand" "$BASH_NOTES"/jinja-shell.txt |
 	sed -e 's/%7B/{/g' -e 's/%7D/}/g' |
 	sed -E 's/h2 id="notes-for-(.*)">/h2 id="notes-for-\1" aria-expanded="false" data-toggle="collapse" href="#\1-div">/g' |
 	sed -E -e 's/<h2/<h2><a/g' -e 's/<\/h2>/<\/a><\/h2>/g' 
@@ -45,11 +45,11 @@ _push_notes() {
     _generate_toc "$(find ~/notes/ -type f -not -path '*/\.*')" > ~/notes/toc.md
     for fullname in $(find ~/notes/ -type f -not -path '*/\.*'); do
 	fname="$(echo "$fullname" | rev | cut -d '/' -f1 | rev)"
-	echo $fname
+	echo "Compiling $fname"
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
-	pandoc "$fullname" -o $outf 
+	pandoc "$fullname" -o "$outf "
     done
-    echo "$(_wrap_block ~/notes/.rendered/toc.html)" > ~/notes/.rendered/toc.html
+    _wrap_block ~/notes/.rendered/toc.html > ~/notes/.rendered/toc.html
     rm ~/notes/toc.md
     cd ~/notes/.rendered || return
     git add ./*
@@ -248,9 +248,8 @@ notes() {
 	    if [[ ! -s $fname ]]; then
 		echo "# $dirname Notes for $(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }') #" > "$fname"
 	    fi
-	    echo "$fname"
 	done
-	edit "$fname"
+	edit $fname
     fi
 	 
 }

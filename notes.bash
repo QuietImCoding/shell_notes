@@ -4,12 +4,16 @@ _print_red() { printf "\x1B[31m%s\x1B[0m" "$@"; }
 _print_green() { printf "\x1B[32m%s\x1B[0m" "$@"; }
 _print_bu() { printf "\x1B[1m\x1B[4m%s\x1B[0m\n" "$@"; }
 
+_get_fdate() {
+    date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }'
+}
+
 # Shows a list of the notes you edited today
 _show_todays_notes() {
     _print_bu "Your notes from today:"
     for dir in "$@"
     do
-	dname="$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')"
+	dname="$(_get_fdate)"
 	for fname in $(ls $dir)
 	do
 	    tosnip="${fname:$((${#dname}+1)):${#fname}}"
@@ -34,7 +38,7 @@ r $1
 d
 }"
 
-    sed "$sedcommand" "$BASH_NOTES"/jinja-shell.txt |
+    sed "$sedcommand" "$BASH_NOTES/jinja-shell.txt" |
 	sed -e 's/%7B/{/g' -e 's/%7D/}/g' |
 	sed -E 's/h2 id="notes-for-(.*)">/h2 id="notes-for-\1" aria-expanded="false" data-toggle="collapse" href="#\1-div">/g' |
 	sed -E -e 's/<h2/<h2><a/g' -e 's/<\/h2>/<\/a><\/h2>/g' 
@@ -42,19 +46,22 @@ d
 
 _push_notes() {
     curloc=$(pwd)
+
+    updated=$(find ~/notes -newer ~/notes/.rendered/toc.html -not -path '*/\.*' -not -path '*today*' -type f)
+    cd ~/notes/.rendered || return
+    echo "Generating Table of Contents..."
     _generate_toc "$(find ~/notes/ -type f -not -path '*/\.*')" > ~/notes/toc.md
-    for fullname in $(find ~/notes/ -type f -not -path '*/\.*'); do
+    for fullname in $updated; do
 	fname="$(echo "$fullname" | rev | cut -d '/' -f1 | rev)"
 	echo "Compiling $fname"
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
-	pandoc "$fullname" -o "$outf "
+	pandoc "$fullname" -o "$outf"
     done
     _wrap_block ~/notes/.rendered/toc.html > ~/notes/.rendered/toc.html
-    rm ~/notes/toc.md
-    cd ~/notes/.rendered || return
-    git add ./*
-    git commit -m "Pushed on $(date)"
+    git add ./* &>/dev/null
+    git commit -a -m "Pushed on $(date)" &>/dev/null
     git push
+    rm ~/notes/toc.md
     cd "$curloc" || return
 }
 
@@ -64,7 +71,7 @@ _register_notes() {
     remote=$(curl https://bashnotes.com/tokencheck -X POST \
 	       -F "user-token=$1" \
 	       -F "ssh-key=$(cat ~/.ssh/"$keyfile".pub)")
-    if echo $remote | grep -q 'BAD'; then return; fi
+    if echo "$remote" | grep -q 'BAD'; then return; fi
     git init ~/notes/.rendered
     curloc=$(pwd)
     cd ~/notes/.rendered || return
@@ -101,7 +108,7 @@ _generate_toc() {
 		id="$(echo "$h" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
 		if echo "$h" | grep -q 'Notes for'; then
 		    datehdr="$(echo "$h" | sed -E 's/.*Notes for //g')"
-		    und_hdr="$(echo $datehdr | tr ' ' '_')"
+		    und_hdr="$(echo "$datehdr" | tr ' ' '_')"
 		    echo "### [$datehdr](/{{username}}/$subj/$und_hdr) ###"
 
 		else
@@ -119,13 +126,16 @@ _generate_toc() {
 
 
 
-_todays_notes() {
+_organize_notes() {
     rm ~/notes/today/* 2>/dev/null
     rm "$(find ~/notes/ | grep '~')" 2>/dev/null
-    dname="$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')"
-    for fname in $(find ~/notes | grep '^[^#].*md$')
+    dname="$(_get_fdate)"
+    for fname in $(find ~/notes | grep -E '^[^#].*(md)|(txt)$')
     do
-	if [[ $fname = *$dname* ]]; then
+	if [[ $fname = *.worktree* ]] && [[ $fname != *$dname* ]]; then
+	    rm "$fname"
+	fi
+	if  [[ -f $fname ]] && [[ $fname = *$dname*.md ]]; then
 	    cp "$fname" ~/notes/today/
 	fi
     done
@@ -194,15 +204,16 @@ _preview_todays_notes() {
 }
 
 
-
 notes() {
-    _todays_notes
-    fname="$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')_$1.md"
+    _organize_notes
+    fname="$(_get_fdate)_$1.md"
 
     # What happens here is TRULY disgusting
+    # Seriously, don't look at it too long
+    # This is not a joke
     dub_at=""
     for i in "$@"; do dub_at="$dub_at $i $i "; done
-    printf -v fnames "$HOME/notes/%s/$(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }')_%s.md " $dub_at $dub_at
+    printf -v fnames "$HOME/notes/%s/$(_get_fdate)_%s.md " $dub_at $dub_at
     printf -v notesdirs "$HOME/notes/%s/ " "$@"
 
     # Print usage message if no args
@@ -234,6 +245,7 @@ notes() {
 	return
     else
 	fnamelist=""
+	
 	for k in $(seq 1 "$(echo "$notesdirs" | awk -F' ' '{print NF}')")
 	do
 	    notesdir=$(echo "$notesdirs" | cut -d" " -f"$k")
@@ -246,10 +258,10 @@ notes() {
 		mkdir "$notesdir"
 	    fi
 	    if [[ ! -s $fname ]]; then
-		echo "# $dirname Notes for $(date | awk '{ printf("%s_%02d_%d", $2, $3, $6) }') #" > "$fname"
+		echo "# $dirname Notes for $(_get_fdate) #" > "$fname"
 	    fi
+
 	done
-	edit $fname
+	edit "$fname"
     fi
-	 
 }

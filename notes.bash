@@ -46,18 +46,18 @@ d
 
 _push_notes() {
     curloc=$(pwd)
-
     updated=$(find ~/notes -newer ~/notes/.rendered/toc.html -not -path '*/\.*' -not -path '*today*' -type f)
+    updated="$HOME/notes/toc.md $updated"
     cd ~/notes/.rendered || return
     echo "Generating Table of Contents..."
     _generate_toc "$(find ~/notes/ -type f -not -path '*/\.*')" > ~/notes/toc.md
-    for fullname in $updated; do
+    for fullname in $updated; do #$updated; do
 	fname="$(echo "$fullname" | rev | cut -d '/' -f1 | rev)"
 	echo "Compiling $fname"
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
 	pandoc "$fullname" -o "$outf"
     done
-    _wrap_block ~/notes/.rendered/toc.html > ~/notes/.rendered/toc.html
+    echo $(_wrap_block ~/notes/.rendered/toc.html) > ~/notes/.rendered/toc.html
     git add ./* &>/dev/null
     git commit -a -m "Pushed on $(date)" &>/dev/null
     git push
@@ -86,7 +86,7 @@ _register_notes() {
 
 _generate_toc() {
     echo "# Table of Contents #"
-    for subj in $(_get_subjects "$@" | sort | uniq)
+    for subj in $(_get_subjects $@ | sort | uniq)
     do
 	echo "## Notes for $subj ##"
 	echo "<div class=\"collapse\" id=\"${subj}-div\">"
@@ -242,6 +242,10 @@ notes() {
 	return
     elif [[ $1 = 'search' ]]; then
 	_search_notes "$2"
+	return
+    elif [[ $1 = 'status' ]]; then
+	_print_bu "Notes updated"
+	find ~/notes -newer ~/notes/.rendered/toc.html -not -path '*/\.*' -not -path '*today*' -type f
 	return
     else
 	fnamelist=""

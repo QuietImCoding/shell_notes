@@ -30,6 +30,10 @@ _get_subjects() {
     done
 }
 
+_get_updated() {
+    find ~/notes -name '*.md' -newer ~/notes/.rendered/toc.html -not -path '*/\.*' -not -path '*today*' -type f
+}
+
 _wrap_block() {
     # I am very scared of touching this sed command
     # If you see this comment and want to indent it consider yourself warned.
@@ -46,7 +50,7 @@ d
 
 _push_notes() {
     curloc=$(pwd)
-    updated=$(find ~/notes -newer ~/notes/.rendered/toc.html -not -path '*/\.*' -not -path '*today*' -type f)
+    updated=$(_get_updated)
     updated="$HOME/notes/toc.md $updated"
     cd ~/notes/.rendered || return
     echo "Generating Table of Contents..."
@@ -57,7 +61,7 @@ _push_notes() {
 	outf=~/notes/.rendered/"${fname:0:$((${#fname} - 3))}.html"
 	pandoc "$fullname" -o "$outf"
     done
-    echo $(_wrap_block ~/notes/.rendered/toc.html) > ~/notes/.rendered/toc.html
+    echo "$(_wrap_block ~/notes/.rendered/toc.html)" > ~/notes/.rendered/toc.html
     git add ./* &>/dev/null
     git commit -a -m "Pushed on $(date)" &>/dev/null
     git push
@@ -245,7 +249,7 @@ notes() {
 	return
     elif [[ $1 = 'status' ]]; then
 	_print_bu "Notes updated"
-	find ~/notes -newer ~/notes/.rendered/toc.html -not -path '*/\.*' -not -path '*today*' -type f
+	_get_updated
 	return
     else
 	fnamelist=""
@@ -266,6 +270,6 @@ notes() {
 	    fi
 
 	done
-	edit "$fname"
+	$EDITOR $fname
     fi
 }

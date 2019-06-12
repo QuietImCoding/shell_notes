@@ -1,0 +1,12 @@
+cat shell_completion.bash >> ~/.bash_completion
+echo "###########################################" >> ~/.bashrc
+echo "# This enables shell notes on your system #" >> ~/.bashrc
+echo "BASH_NOTES=$(pwd)" >> ~/.bashrc
+echo "source ~/.notes.bash" >> ~/.bashrc
+echo "export BASH_NOTES" >> ~/.bashrc
+echo "###########################################" >> ~/.bashrc
+echo "Installed!"
+source ~/.bashrc
+mkdir -p ~/notes/today
+rm *~ 2>/dev/null
+
